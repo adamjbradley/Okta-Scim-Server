@@ -1,0 +1,13 @@
+version: 1
+
+dn: uid=user1-2,ou=system
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: person
+objectClass: organizationalPerson
+cn: user1-2
+mail: user1-2@unifysolutions.net
+sn: 1-2
+displayName: user1-2
+uid: user1-2
+

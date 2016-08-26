@@ -1,0 +1,12 @@
+version: 1
+
+#
+# LDAPv3
+# base <> (default) with scope subtree
+# filter: (objectclass=*)
+# requesting: ALL
+#
+
+# search result
+
+# numResponses: 1
