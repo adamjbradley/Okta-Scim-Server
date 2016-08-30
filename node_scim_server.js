@@ -21,8 +21,9 @@ var url = require('url');
 var uuid = require('uuid');
 var assert = require('assert');
 var bodyParser = require('body-parser');
-
-var db = new sqlite3.Database('test.db'); 
+var fs = require('fs');
+//var db = new sqlite3.Database('test.db'); 
+var Promise = require('promise');
 
 //LDAP Configuration
 var baseDN = "ou=system"
@@ -33,19 +34,34 @@ var client = ldap.createClient({
 client.bind('uid=admin,ou=system', 'password', function(err) {
   assert.ifError(err);
 });
+var schemaDN = "ou=schema"
+var ldapSchema = null;
 
+//Service Provider Configuration
+var serviceProviderConfigPath = "./ServiceProviderConfigSchema.json";
+
+//SCIM Configuration
+var schemaPath = "./Schema.json";
+var scimSchema = null;
+
+//Schema Map
+var schemaMapPath = "./SchemaMap.json";
+var schemaMap = null;
+    
+//Express Settings
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 //TODO Multi-valued fields not handled
+//AJB
 function getByValue(arr, value) {
   for (var i=0, iLen=arr.length; i<iLen; i++) {
     if (arr[i].type == value) return arr[i].vals.toString();
   }
 }
 
-/** 
+/**
  *   Constructor for creating SCIM Resource 
  */
 function GetSCIMList(rows, startIndex, count, req_url) {
@@ -61,6 +77,52 @@ function GetSCIMList(rows, startIndex, count, req_url) {
 
   var resources = [];
   var location = ""
+  for (var i = (startIndex-1); i < count; i++) {
+    location =  req_url + "/" + rows[i]["id"];
+    var userResource = GetSCIMUserResource(
+      rows[i]["id"],
+      rows[i]["emailAddress"],
+      rows[i]["userName"],
+      rows[i]["givenName"],
+      rows[i]["middleName"],
+      rows[i]["familyName"],
+      location);
+    resources.push(userResource);
+    location = "";
+  }
+
+  scim_resource["Resources"] = resources;
+  scim_resource["startIndex"] = startIndex;
+  scim_resource["itemsPerPage"] = count;
+  scim_resource["totalResults"] = count
+
+  return scim_resource;
+}
+
+/**
+ *   Constructor for creating SCIM Resource 
+ */
+function GetSCIMListObject(rows, startIndex, count, req_url, objectType) {
+  var scim_resource =  {
+    "Resources": [], 
+    "itemsPerPage": 0, 
+    "schemas": [
+      "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+    ], 
+    "startIndex": 0, 
+    "totalResults": 0
+  }
+
+  var resources = [];
+  var location = ""
+
+  if (objectType == "Schemas") {
+
+  }
+  else {
+
+  }
+
   for (var i = (startIndex-1); i < count; i++) {
     location =  req_url + "/" + rows[i]["id"];
     var userResource = GetSCIMUserResource(
@@ -296,6 +358,133 @@ function SCIMSuccess(message, statusCode) {
 }
 
 /**
+ *  ServiceProviderConfig
+ */
+app.get("/scim/v2/ServiceProviderConfig", function (req, res){
+  fs.readFile( __dirname + '/' + serviceProviderConfigPath, function (err, data) {
+    if (err) {
+      var scim_error = SCIMError( "Cannot retrieve ServiceProviderConfig", "404");
+      res.writeHead(404, {'Content-Type': 'text/plain'});
+      res.end(JSON.stringify(scim_error));
+    }
+    if (data) {
+      var serviceProviderConfig = data.toString();
+      res.writeHead(409, {'Content-Type': 'text/plain'});
+      res.end(serviceProviderConfig);
+    }
+  });
+});
+
+/**
+ *  Schema
+ */
+app.get("/scim/v2/Schemas", function (req, res) {
+  return new Promise(function (fulfill, reject){
+    GetSCIMSchema().done(function (data) {
+      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.end(data);
+    }, reject);
+  });      
+});
+
+var GetSCIMSchema = function () {
+  return new Promise(function (fulfill, reject) {
+    fs.readFile( __dirname + '/' + schemaPath, function (err, data) {
+      if (err) {
+        reject(SCIMError( "Cannot retrieve SCIM schema from schemaPath", "404"));
+      }
+      else {
+        fulfill(data.toString());
+      }
+    });  
+  });
+}
+
+var GetSchemaMap = function () {
+  return new Promise(function (fulfill, reject) {
+    fs.readFile( __dirname + '/' + schemaMapPath, function (err, data) {
+      if (err) {
+        reject(SCIMError( "Cannot retrieve Schema Map from schemaMapPath", "404"));
+      }
+      else {
+        fulfill(data.toString());
+      }
+    });  
+  });
+}
+
+var LDAPSearch = function(filter, scope, attributes) {
+  return new Promise(function (fulfill, reject) {
+    var results = [];
+    var opts = {
+      filter: filter,
+      scope: scope,
+      attributes: attributes
+    };
+
+    client.search(schemaDN, opts, function(err, result) {  
+      result.on('searchEntry', function(entry) {        
+        if (entry == null) {
+          reject(SCIMError( "Entry Not Found", "404"));
+        }
+        else {
+          results.push(entry);
+        }
+      });
+      result.on('searchReference', function(referral) {
+        console.log('referral: ' + referral.uris.join());
+      });
+      result.on('error', function(err) {
+        console.error('error: ' + err.message);
+        reject(SCIMError( "Schema Not Found", "404"));
+      });
+      result.on('end', function(result) {
+        console.log('status: ' + result.status);
+        fulfill(result);
+      });
+    });
+  });
+}
+
+var GetLDAPSchema = function () {
+ return new Promise(function (fulfill, reject) {  
+    var results = [];
+    var opts = {
+      filter: 'objectClass=*',
+      scope: 'sub',
+      attributes: []
+    };
+
+    client.search(schemaDN, opts, function(err, result) {  
+      result.on('searchEntry', function(entry) {        
+        if (entry == null) {
+          reject(SCIMError( "Entry Not Found", "404"));
+        }
+        else {
+          results.push(entry);
+        }
+      });
+      result.on('searchReference', function(referral) {
+        console.log('referral: ' + referral.uris.join());
+      });
+      result.on('error', function(err) {
+        console.error('error: ' + err.message);
+        reject(SCIMError( "Schema Not Found", "404"));
+      });
+      result.on('end', function(result) {
+        console.log('status: ' + result.status);
+        fulfill(result);
+      });
+    });
+  });
+}
+
+
+/**
+ *  Users
+ */
+
+/**
  *  Creates a new User with given attributes
  */
 app.post('/scim/v2/Users',  function (req, res) {   
@@ -336,6 +525,7 @@ app.post('/scim/v2/Users',  function (req, res) {
       if (!exists) {
         var scimUserResource = GetSCIMUserResourceLDAP(id, user['emailAddress'], id, user.name.givenName, user.name.middleName, user.name.familyName, req_url); 
         if (result.status == 0) {
+
           var ldapUserResource = GetLDAPUserResource(id, user['emailAddress'], id, user.name.givenName, user.name.middleName, user.name.familyName, req_url);
           client.add('uid=' + id + ',' + baseDN, ldapUserResource, function(err) {
             assert.ifError(err);
@@ -346,6 +536,10 @@ app.post('/scim/v2/Users',  function (req, res) {
         }
         else {
           console.log('Add: Status (unhandled) ' + result.status);
+
+          var scim_error = SCIMError( String(result.status), "400");
+          res.writeHead(400, {'Content-Type': 'text/plain'});
+          res.end(JSON.stringify(scim_error));
         }
       }      
     });
@@ -353,7 +547,7 @@ app.post('/scim/v2/Users',  function (req, res) {
 }); 
 
 /**
- *  Return filtered Users stored in database
+ *  Return filtered Users
  *
  *  Pagination supported
  */
@@ -447,7 +641,7 @@ app.get("/scim/v2/Users", function (req, res) {
 });
 
 /**
- *  Queries database for User with identifier
+ *  Return User with identifier
  *
  *  Updates response code with '404' if unable to locate User
  */
@@ -499,7 +693,27 @@ app.get("/scim/v2/Users/:userId", function (req, res){
 });
 
 /**
- *  Update User attributes via Patch
+ *  Update User attributes via Put MUST
+ */
+app.put("/scim/v2/Users/:userId", function (req, res) {
+
+  var userId = req.params.userId;
+  var url_parts = url.parse(req.url, true);
+  var req_url = url_parts.pathname;
+
+  var op = "";
+  var value = "";  
+
+  console.log("Put: Update attributes(s)");
+
+  var scim_error = SCIMError( "Put Operation Not Supported", "400");
+  res.writeHead(404, {'Content-Type': 'application/text' });
+  res.end(JSON.stringify(scim_error));
+
+});
+
+/**
+ *  Update User attributes via Patch OPTIONAL
  */
 app.patch("/scim/v2/Users/:userId", function (req, res) {
 
@@ -507,10 +721,58 @@ app.patch("/scim/v2/Users/:userId", function (req, res) {
   var url_parts = url.parse(req.url, true);
   var req_url = url_parts.pathname;
 
-  var scim_error = SCIMError( "Not implented", "400");
-  res.writeHead(400, {'Content-Type': 'application/text' });
-  res.end(JSON.stringify(scim_error));
+  var op = "";
+  var value = "";  
+  var operations = req.body.Operations;    
 
+  for (var i=0; operations.length; i++) {
+    op = operations[i].op;
+    //value = jsonReqBody["Operations"][0]["value"];
+    //var attribute = Object.keys(value)[0];
+    //var attrValue = value[attribute];
+
+    var scim_error = SCIMError( "Patch: Operation Not Supported", "403");
+    res.writeHead(403, {'Content-Type': 'application/text' });
+    res.end(JSON.stringify(scim_error));
+
+    if (op == "add") {
+      console.log("Patch: Add attribute");
+    }
+    else if (op == "replace") {
+      console.log("Patch: Replace attribute");
+
+      /*
+      var updateUsersQuery = "UPDATE 'Users' SET "+ attribute + " = '" + attrValue + "'WHERE id = '" + String(userId) + "'";
+      db.run(updateUsersQuery, function(err) {
+        if (err == null) {
+          var queryById = "SELECT * FROM Users WHERE id='"+userId+"'";
+          
+          db.get(queryById, function(err, rows) {
+            if (err == null) {
+              var scimUserResource = GetSCIMUserResource(userId, rows.emailAddress, rows.userName, rows.givenName, rows.middleName, rows.familyName, req_url);         
+              res.writeHead(200, {'Content-Type': 'application/json'});
+              res.end(JSON.stringify(scimUserResource));    
+            } else {
+                var scim_error = SCIMError( String(err), "400");
+                res.writeHead(400, {'Content-Type': 'application/text' });
+                res.end(JSON.stringify(scim_error));
+            }
+          });
+        } else {
+          var scim_error = SCIMError( String(err), "400");
+          res.writeHead(400, { 'Content-Type': 'application/text' });
+          res.end(JSON.stringify(scim_error));
+        }       
+      });
+      */
+    }
+    else if (op == "remove") {
+      console.log("Patch: Remove attribute");
+    } else {  
+      console.log("Patch: Operation not supported");
+    }  
+  }
+  
   /*
   var op = "";
   var value = "";
@@ -556,8 +818,8 @@ app.patch("/scim/v2/Users/:userId", function (req, res) {
       }  
   });
   */ 
-});
 
+});
 
 /**
  *  Delete User via Delete
@@ -614,17 +876,8 @@ app.delete("/scim/v2/Users/:userId", function (req, res) {
 });    
 
 /**
- *  Default URL
+ *  Groups
  */
-app.get('/scim/v2', function (req, res) { res.send('SCIM'); });
-
-/**
- *  Instantiates or connects to DB
- */
-var server = app.listen(8081, function () {
-
-});
-
 
 /**
  *  Creates a new Group with given attributes
@@ -640,7 +893,7 @@ app.post('/scim/v2/Groups',  function (req, res) {
 }); 
 
 /**
- *  Creates a new Group with given attributes
+ *  Retrieve a new Group
  */
 app.get('/scim/v2/Groups',  function (req, res) {   
   var userId = req.params.userId;
@@ -653,7 +906,7 @@ app.get('/scim/v2/Groups',  function (req, res) {
 }); 
 
 /**
- *  Update a Group with given attributes
+ *  Update a Group membership
  */
 app.patch('/scim/v2/Groups',  function (req, res) {   
   var userId = req.params.userId;
@@ -676,4 +929,30 @@ app.delete('/scim/v2/Groups',  function (req, res) {
   var scim_error = SCIMError( "Not implented", "400");
   res.writeHead(400, {'Content-Type': 'application/text' });
   res.end(JSON.stringify(scim_error));
+});
+
+/**
+ *  Default URL
+ */
+app.get('/scim/v2', function (req, res) { res.send('SCIM'); });
+
+/**
+ *  Instantiates or connects to DB
+ */
+var server = app.listen(8081, function () {
+
+    //LDAP, SCIM Schema and Schema Map
+    return new Promise(function (fulfill, reject) {
+      GetSCIMSchema().then(function (scimSchemaData) {
+        scimSchema = scimSchemaData;
+      }, reject).then(function (schemaData) {
+          LDAPSearch('objectclass=*','sub', []).then(function (schemaData) {
+          ldapSchema = schemaData;
+        }, reject).then(function (schemaMapData) {
+          GetSchemaMap().then(function (schemaMapData) {
+          schemaMap = schemaMapData;
+        }, reject)
+      }); 
+    });
+  });    
 });
