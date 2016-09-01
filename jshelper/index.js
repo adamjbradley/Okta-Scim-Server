@@ -2,7 +2,6 @@ var fs = require('fs');
 var ldif = require('ldif');
 var Promise = require('bluebird');
 
-
 module.exports = {
 
   ASimpleMethod: function(throwError) {
@@ -54,7 +53,7 @@ module.exports = {
   
   OpenJSONDocument: function(filepath) {
     return new Promise(function (fulfill, reject) {
-      fs.readFile( __dirname + '/' + filepath, function (err, data) {
+      fs.readFile( filepath, function (err, data) {
         if (err) {
           reject(err);
         }

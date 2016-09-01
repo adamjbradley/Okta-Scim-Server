@@ -33,7 +33,11 @@ var LDAPConnect = ldapHelper.LDAPConnect,
   LDAPSearchPromise = ldapHelper.LDAPSearchPromise,
   LDAPSearchAsyncPromise = ldapHelper.LDAPSearchAsyncPromise,
   LDAPToSCIMObject = ldapHelper.LDAPToSCIMObject,
-  SCIMToLDAPObject = ldapHelper.SCIMToLDAPObject;
+  SCIMToLDAPObject = ldapHelper.SCIMToLDAPObject,
+  GetSCIMList = ldapHelper.GetSCIMList,
+  OpenJSONDocument = jsHelper.OpenJSONDocument,
+  SCIMToLDAPModifyObject = ldapHelper.SCIMToLDAPModifyObject,
+  JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject;
 
 //LDAP Configuration
 var client = null;
@@ -103,15 +107,14 @@ function SCIMSuccess(message, statusCode) {
  *  SCIM Schema
  */
 app.get("/scim/v2/Schemas", function (req, res) {
-  return new Promise(function (fulfill, reject){
-    GetSCIMSchema().done(function (data) {
+  GetSCIMSchema()
+    .then(function (result) {
+      ldapSchema = result;
       res.writeHead(200, {'Content-Type': 'text/plain'});
-      res.end(data);
-    }, function(error) {
-      res.writeHead(404, {'Content-Type': 'text/plain'});
-      res.end(error);
+      res.end(JSON.stringify(ldapSchema));
+    }).catch(function(message) {
+      console.log('Error:' + message);
     });
-  });      
 });
 
 var GetSCIMSchema = function () {
@@ -121,19 +124,6 @@ var GetSCIMSchema = function () {
     }, function(error) {
       reject(error);
     });
-  });
-}
-
-var OpenJSONDocument = function(filepath) {
-  return new Promise(function (fulfill, reject) {
-    fs.readFile( __dirname + '/' + filepath, function (err, data) {
-      if (err) {
-        reject(err);
-      }
-      else {
-        fulfill(data.toString());
-      }
-    });  
   });
 }
 
@@ -166,11 +156,56 @@ app.get("/LDAPSchema", function (req, res) {
  */
 
 /**
- *  Return User with identifier
+ *  Return filtered Users
  *
- *  Updates response code with '404' if unable to locate User
+ *  Pagination supported
  */
+app.get("/scim/v2/Users", function (req, res) {
+  var url_parts = url.parse(req.url, true);
+  var query = url_parts.query;
+  startIndex  = query["startIndex"];
+  count = query["count"];
+  filter = query["filter"];
 
+  var req_url =  url_parts.pathname;
+  var queryAtrribute = "";
+  var queryValue = "";
+
+  var opts = {
+    filter: '(ObjectClass=inetOrgPerson)',
+    scope: 'sub',
+    attributes: []
+  };
+
+  var scimObjects = [];
+  LDAPSearchAsyncPromise(client, baseDN, opts)
+    .then(function (result) {
+      return LDAPSearchPromise(result, 'Object not found');
+    }).then(function(result) {
+
+      for (var i=0; i<result.length; i++){
+        LDAPToSCIMObject(schemaMap, result[i], "http://localhost", "o=system")
+          .then(function (result) {
+            console.log(result);
+            scimObjects.push(result);
+          }).catch(function(message) {
+            console.log('Error:' + message);
+          });
+      }
+
+    })
+    .catch(function(message) {
+      console.log('Error:' + message);
+    }).finally(function(result){
+      var scimResource = GetSCIMList(100, 0, scimObjects, 'http://localhost');
+      res.writeHead(200, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify(scimResource))
+    });
+});
+
+/**
+ *  Return User with identifier
+ */
 app.get("/scim/v2/Users/:userId", function (req, res){
   var id = req.params.userId;
   var url_parts = url.parse(req.url, true);
@@ -221,7 +256,6 @@ app.get("/scim/v2/Users/:userId", function (req, res){
 
 /**
  *  Add User
- *
  */
 app.post('/scim/v2/Users',  function (req, res) {   
 
@@ -252,12 +286,10 @@ app.post('/scim/v2/Users',  function (req, res) {
         exists = true;
       }
     }).catch(function(message) {
-      console.log("Considering");
       console.log(JSON.stringify(users));
       var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
       SCIMToLDAPObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
         .then(function (result) {
-          console.log(result);
           client.add('uid=' + id + ',' + baseDN, result, function(err) {
             assert.ifError(err);
           });
@@ -275,7 +307,9 @@ app.post('/scim/v2/Users',  function (req, res) {
 
 }); 
 
-
+/**
+ *  Delete User
+ */
 app.delete("/scim/v2/Users/:userId", function (req, res) {
 
   var id = req.params.userId;
@@ -295,14 +329,14 @@ app.delete("/scim/v2/Users/:userId", function (req, res) {
       return LDAPSearchPromise(result, 'Object not found');
     }).then(function(result) {
         
-      exists = true;
       client.del('uid=' + id + ',' + baseDN, function(err) {
         assert.ifError(err);
       });
 
       var scim_message = SCIMSuccess( String("Success"), "400");
       res.writeHead(201, {'Content-Type': 'text/json'});
-      res.end(JSON.stringify(scim_message));      
+      res.end(JSON.stringify(scim_message));
+      return;
 
     }).catch(function(message) {
       var scim_error = SCIMError( "User does not exist", "400");
@@ -312,7 +346,99 @@ app.delete("/scim/v2/Users/:userId", function (req, res) {
     }).finally(function() {
     });
 
-});    
+});
+
+/**
+ *  Update User attributes via Put MUST
+ */
+app.put("/scim/v2/Users/:userId", function (req, res) {
+  
+  var url_parts = url.parse(req.url, true);
+  var req_url = url_parts.pathname;
+
+  var users = req.body;
+  var id = req.params.userId;
+
+  var opts = {
+    filter: '(|(uid=' + id + '))',
+    scope: 'sub',
+    attributes: []
+  };
+
+  var exists = false;
+  var results = [];
+  LDAPSearchAsyncPromise(client, baseDN, opts)
+    .then(function (result) {
+      return LDAPSearchPromise(result, 'Object not found');
+    }).then(function(result) {
+      if (result.length == 1) {
+        var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
+        SCIMToLDAPModifyObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
+          .then(function (result) {
+            client.modify('uid=' + id + ',' + baseDN, result, function(err) {
+              assert.ifError(err);
+            });
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.end(JSON.stringify(result));
+          }).catch(function(message) {
+            console.log('Error:' + message);
+            var scim_error = SCIMError( "Unable to convert LDAP to SCIM", "409");
+            res.writeHead(409, {'Content-Type': 'text/plain'});
+            res.end(JSON.stringify(scim_error));
+          });
+      }
+      else {
+        var scim_error = SCIMError( "Resource does not exists", "409");
+        res.writeHead(409, {'Content-Type': 'text/plain'});
+        res.end(JSON.stringify(scim_error));
+        exists = false;
+      }
+
+    }).catch(function(message) {
+      console.log('Error:' + message);
+      var scim_error = SCIMError( "Unable to convert LDAP to SCIM", "409");
+      res.writeHead(409, {'Content-Type': 'text/plain'});
+      res.end(JSON.stringify(scim_error));
+    }).finally(function() {
+    });
+
+});
+
+/**
+ *  Update User attributes via Patch OPTIONAL
+ */
+app.patch("/scim/v2/Users/:userId", function (req, res) {
+
+  var userId = req.params.userId;
+  var url_parts = url.parse(req.url, true);
+  var req_url = url_parts.pathname;
+
+  var scim_error = SCIMError( "Patch: Operation Not Supported", "403");
+  res.writeHead(403, {'Content-Type': 'application/text' });
+  res.end(JSON.stringify(scim_error));
+  return; 
+
+  var op = "";
+  var value = "";  
+  var operations = req.body.Operations;    
+
+  for (var i=0; i < operations.length; i++) {
+    op = operations[i].op;    
+    if (op == "add") {
+      console.log("Patch: Add attribute");
+    }
+    else if (op == "replace") {
+      console.log("Patch: Replace attribute");
+    }
+    else if (op == "remove") {
+      console.log("Patch: Remove attribute");
+    } else {  
+      console.log("Patch: Operation not supported");
+    }  
+  }
+
+
+});
 
 
 /**

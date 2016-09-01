@@ -109,9 +109,10 @@ module.exports = {
               //.forMember('dn', function(opts) { return opts.sourceObject['id'] + ',' + baseDN })
               .forMember('cn', function(opts) { opts.mapFrom('id'); })
               //.forMember('mail', function(opts) {opts.mapFrom('emails'); })
+              .forMember('mail', function (opts) { opts.condition(function (sourceObject) { return sourceObject.prop != null; }); })
               .forMember('givenName', function(opts) {opts.mapFrom('name.givenName'); })                            
               .forMember('sn', function(opts) {opts.mapFrom('name.familyName'); })                            
-              .forMember('uid', function(opts) {opts.mapFrom('id'); })
+              //.forMember('uid', function(opts) {opts.mapFrom('id'); })
               .forMember('displayName', function(opts) { return opts.sourceObject['name'].givenName + " " + opts.sourceObject['name'].familyName; })
               .forSourceMember('schemas', function(opts) {opts.ignore(); })
               .forSourceMember('meta', function(opts) {opts.ignore(); })
@@ -120,6 +121,71 @@ module.exports = {
           
           // act
           ldap_object = automapper.map(fromKey, toKey, object);
+        }
+        else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:Group') {
+          console.log("Processing a Group");
+        }
+        else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:EnterpriseUser') {
+          console.log("Processing an Enterprise User");
+        }
+        else {
+          console.error("Unable to determine LDAP object type for SCIM resource");
+        }
+        fulfill(ldap_object);
+
+      } catch (ex) {
+        console.error(ex.message);
+        reject(ex);
+      }
+    });  
+  },
+
+  SCIMToLDAPModifyObject: function(schemaMap, object, req_url, baseDN, objectClass) {
+    return new Promise(function (fulfill, reject) {
+      try {
+
+        var ldap_object = [];
+
+        if (object == null) 
+          new Error("Object is null");
+
+        if (schemaMap == null)  
+          new Error("SchemaMap is null");
+                
+        if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:User') {
+          console.log("Processing a User");
+
+          var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
+          var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
+
+          var forAllMembersSpy = 
+          function (destinationObject, destinationProperty, value) {
+            destinationObject[destinationProperty] = value;
+          };
+
+          automapper
+              .createMap(fromKey, toKey)
+              .forMember('mail', function(opts) {opts.mapFrom('emailAddress'); })                            
+              .forMember('mail', function (opts) {opts.condition(function (sourceObject) {return sourceObject.emailAddress != null;});})
+              .forMember('givenName', function(opts) {opts.mapFrom('name.givenName'); })                            
+              .forMember('sn', function(opts) {opts.mapFrom('name.familyName'); })                            
+              .forMember('displayName', function(opts) { return opts.sourceObject['name'].givenName + " " + opts.sourceObject['name'].familyName; })
+              .forSourceMember('schemas', function(opts) {opts.ignore(); })
+              .forSourceMember('meta', function(opts) {opts.ignore(); })
+              .forSourceMember('objectClass', function(opts) {opts.ignore(); })
+              .forSourceMember('controls', function(opts) {opts.ignore(); })
+              .ignoreAllNonExisting();          
+          // act
+          ldap_object = automapper.map(fromKey, toKey, object);
+
+          automapper
+            .createMap(fromKey, toKey)
+            .forMember('operation', 'replace')
+            .forMember('modification', ldap_object)
+            .ignoreAllNonExisting();
+        
+          // act
+          ldap_object = automapper.map(fromKey, toKey, ldap_object);
 
         }
         else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:Group') {
@@ -131,8 +197,71 @@ module.exports = {
         else {
           console.error("Unable to determine LDAP object type for SCIM resource");
         }
+        fulfill(ldap_object);
 
-        console.log(ldap_object);
+      } catch (ex) {
+        console.error(ex.message);
+        reject(ex);
+      }
+    });  
+  },
+
+  JSONToLDAPModifyObject: function(schemaMap, object, req_url, baseDN, objectClass) {
+    return new Promise(function (fulfill, reject) {
+      try {
+
+        var ldap_object = [];
+
+        if (object == null) 
+          new Error("Object is null");
+
+        if (schemaMap == null)  
+          new Error("SchemaMap is null");
+                
+        if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:User') {
+          console.log("Processing a User");
+
+          var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
+          var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
+
+          var forAllMembersSpy = 
+          function (destinationObject, destinationProperty, value) {
+            destinationObject[destinationProperty] = value;
+          };
+
+          automapper
+              .createMap(fromKey, toKey)
+              .forMember('mail', function (opts) { opts.condition(function (sourceObject) { return sourceObject.prop != null; }); })
+              .forMember('givenName', function(opts) {opts.mapFrom('name.givenName'); })                            
+              .forMember('sn', function(opts) {opts.mapFrom('name.familyName'); })                            
+              .forMember('displayName', function(opts) { return opts.sourceObject['name'].givenName + " " + opts.sourceObject['name'].familyName; })
+              .forSourceMember('schemas', function(opts) {opts.ignore(); })
+              .forSourceMember('meta', function(opts) {opts.ignore(); })
+              .forSourceMember('objectClass', function(opts) {opts.ignore(); })
+              .forSourceMember('controls', function(opts) {opts.ignore(); })
+              .ignoreAllNonExisting();          
+          // act
+          ldap_object = automapper.map(fromKey, toKey, object);
+
+          automapper
+            .createMap(fromKey, toKey)
+            .forMember('operation', 'add')
+            .forMember('modification', ldap_object)
+            .ignoreAllNonExisting();
+        
+          // act
+          ldap_object = automapper.map(fromKey, toKey, ldap_object);
+
+        }
+        else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:Group') {
+          console.log("Processing a Group");
+        }
+        else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:EnterpriseUser') {
+          console.log("Processing an Enterprise User");
+        }
+        else {
+          console.error("Unable to determine LDAP object type for SCIM resource");
+        }
         fulfill(ldap_object);
 
       } catch (ex) {
@@ -159,7 +288,7 @@ module.exports = {
         automapper
             .createMap(fromKey, toKey)
             .forMember("schemas", ['urn:ietf:params:scim:schemas:core:2.0:User'])
-            .forMember('id', function(opts) { opts.mapFrom('attributes.uid'); })
+            //.forMember('id', function(opts) { opts.mapFrom('attributes.uid'); })
             .forMember('username', function(opts) { opts.mapFrom('uid'); })
             .forMember('name.givenName', function(opts) { opts.mapFrom('attributes.givenName'); })
             .forMember('name.familyName', function(opts) { opts.mapFrom('attributes.sn'); })
@@ -214,7 +343,6 @@ module.exports = {
     });  
   },
 
-
   OpenLDIFDocument: function(filepath) {
     return new Promise(function (fulfill, reject) {
       var results = [];
@@ -227,6 +355,26 @@ module.exports = {
       }  
     });
   },
+
+  GetSCIMList: function(rows, startIndex, objects, req_url) {
+    var scim_resource =  {
+      "Resources": [], 
+      "itemsPerPage": 0, 
+      "schemas": [
+        "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+      ], 
+      "startIndex": 0, 
+      "totalResults": 0
+    }
+
+    scim_resource["Resources"] = objects;
+    scim_resource["startIndex"] = startIndex;
+    scim_resource["itemsPerPage"] = rows;
+    scim_resource["totalResults"] = objects.length;
+
+    return scim_resource;
+  }
+
 
 };
 

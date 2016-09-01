@@ -3,14 +3,10 @@
     "urn:ietf:params:scim:schemas:core:2.0:User"
   ],
   "id": "user1-3",
-  "userName": "user1-3",
+  "userName": "uid=user1-3,ou=system",
   "name": {
-    "givenName": "user",
-    "familyName": "1-3"
+    "givenName": "user1-3",
+    "familyName": "user1-3"
   },
-  "emails": "user1-3@unifysolutions.net",
-  "meta": {
-    "resourceType": "User",
-    "location": "/scim/v2/Users"
-  }
+  "emailAddress": "user1-3@unifysolutions.net"
 }
