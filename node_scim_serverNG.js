@@ -32,11 +32,12 @@ var LDAPConnect = ldapHelper.LDAPConnect,
   LDAPConnectPromise = ldapHelper.LDAPConnectPromise,
   LDAPSearchPromise = ldapHelper.LDAPSearchPromise,
   LDAPSearchAsyncPromise = ldapHelper.LDAPSearchAsyncPromise,
-  LDAPToSCIMObject = ldapHelper.LDAPToSCIMObject;
+  LDAPToSCIMObject = ldapHelper.LDAPToSCIMObject,
+  SCIMToLDAPObject = ldapHelper.SCIMToLDAPObject;
 
 //LDAP Configuration
 var client = null;
-var url = 'ldap://127.0.0.1:10389';
+var ldapUrl = 'ldap://127.0.0.1:10389';
 var failDN = "uid=auser,ou=system";
 var schemaDN = "ou=schema";
 var username = "uid=admin,ou=system";
@@ -148,10 +149,10 @@ app.get("/LDAPSchema", function (req, res) {
   };
 
   LDAPSearchAsyncPromise(client, schemaDN, opts)
-    .then(function (res) {
+    .then(function (result) {
       return LDAPSearchPromise(res, 'Object not found');
-    }).then(function(res) {     
-      ldapSchema = res;    
+    }).then(function(result) {     
+      ldapSchema = result;    
     }).catch(function(message) {
       console.log('Error:' + message);
     }).finally(function() {
@@ -169,8 +170,11 @@ app.get("/LDAPSchema", function (req, res) {
  *
  *  Updates response code with '404' if unable to locate User
  */
+
 app.get("/scim/v2/Users/:userId", function (req, res){
   var id = req.params.userId;
+  var url_parts = url.parse(req.url, true);
+  var req_url =  url_parts.pathname;
 
   var users = null;
   var exists = false;
@@ -182,8 +186,6 @@ app.get("/scim/v2/Users/:userId", function (req, res){
     attributes: []
   };
 
-  console.log(baseDN);
-  console.log(opts);
   LDAPSearchAsyncPromise(client, baseDN, opts)
     .then(function (result) {
       return LDAPSearchPromise(result, 'Object not found');
@@ -197,7 +199,7 @@ app.get("/scim/v2/Users/:userId", function (req, res){
       }
     }).then(function(result) {
 
-      LDAPToSCIMObject(scimSchemaMap, users, "http://localhost", "o=system")
+      LDAPToSCIMObject(schemaMap, users, "http://localhost", "o=system")
         .then(function (result) {
           res.writeHead(200, {'Content-Type': 'text/plain'});
           res.end(JSON.stringify(result));
@@ -207,15 +209,71 @@ app.get("/scim/v2/Users/:userId", function (req, res){
 
     }).catch(function(message) {
       console.log('Error:' + message);
-      
+
       var scim_error = SCIMError( "Cannot retrieve User", "404");
       res.writeHead(404, {'Content-Type': 'text/plain'});
       res.end(JSON.stringify(scim_error));
 
     }).finally(function() {
-
     });
+
   }); 
+
+/**
+ *  Add User
+ *
+ */
+app.post('/scim/v2/Users',  function (req, res) {   
+
+  var url_parts = url.parse(req.url, true);
+  var req_url =  url_parts.pathname;
+
+  var users = req.body;
+  var id = users['id'];
+
+  var opts = {
+    filter: '(|(uid=' + id + '))',
+    scope: 'sub',
+    attributes: []
+  };
+
+  var exists = false;
+  var results = [];
+  LDAPSearchAsyncPromise(client, baseDN, opts)
+    .then(function (result) {
+      return LDAPSearchPromise(result, 'Object not found');
+    }).then(function(result) {
+      if (result.length == 0)
+        exists = false;
+      else {
+        var scim_error = SCIMError( "Conflict - Resource Already Exists", "409");
+        res.writeHead(409, {'Content-Type': 'text/plain'});
+        res.end(JSON.stringify(scim_error));
+        exists = true;
+      }
+    }).catch(function(message) {
+      console.log("Considering");
+      console.log(JSON.stringify(users));
+      var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
+      SCIMToLDAPObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
+        .then(function (result) {
+          console.log(result);
+          client.add('uid=' + id + ',' + baseDN, result, function(err) {
+            assert.ifError(err);
+          });
+          res.writeHead(200, {'Content-Type': 'text/plain'});
+          res.end(JSON.stringify(result));
+        }).catch(function(message) {
+          console.log('Error:' + message);
+          var scim_error = SCIMError( "Unable to convert LDAP to SCIM", "409");
+          res.writeHead(409, {'Content-Type': 'text/plain'});
+          res.end(JSON.stringify(scim_error));
+        });
+      
+    }).finally(function() {
+    });
+
+}); 
 
 /**
  *  Default URL
@@ -224,7 +282,7 @@ app.get('/scim/v2', function (req, res) { res.send('SCIM'); });
 
 var server = app.listen(8081, function () {
   client = ldap.createClient({
-    url: url
+    url: ldapUrl
   });
   promise.promisifyAll(client);
 

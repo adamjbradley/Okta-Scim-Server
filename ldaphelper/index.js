@@ -106,9 +106,9 @@ module.exports = {
           automapper
               .createMap(fromKey, toKey)
               .forMember('objectClass', objectClass)
-              .forMember('dn', function(opts) { return opts.sourceObject['id'] + ',' + baseDN })
+              //.forMember('dn', function(opts) { return opts.sourceObject['id'] + ',' + baseDN })
               .forMember('cn', function(opts) { opts.mapFrom('id'); })
-              .forMember('mail', function(opts) {opts.mapFrom('emails'); })
+              //.forMember('mail', function(opts) {opts.mapFrom('emails'); })
               .forMember('givenName', function(opts) {opts.mapFrom('name.givenName'); })                            
               .forMember('sn', function(opts) {opts.mapFrom('name.familyName'); })                            
               .forMember('uid', function(opts) {opts.mapFrom('id'); })
@@ -156,8 +156,6 @@ module.exports = {
         var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
         var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
 
-        console.log(object);
-
         automapper
             .createMap(fromKey, toKey)
             .forMember("schemas", ['urn:ietf:params:scim:schemas:core:2.0:User'])
@@ -193,8 +191,6 @@ module.exports = {
                 
         var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
         var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
-
-        console.log(object);
 
         automapper
             .createMap(fromKey, toKey)

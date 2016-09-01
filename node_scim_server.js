@@ -24,8 +24,6 @@ var fs = require('fs');
 var Promise = require('promise');
 var ldap = require('ldapjs');
 
-var jsHelper = require('./jshelper');
-
 //LDAP Configuration
 var baseDN = "ou=system";
 var client = ldap.createClient({
@@ -351,9 +349,9 @@ var GetLDAPResourceNG = function(schemaMap, object, req_url) {
         var attributes = schemaMap[0].attributes;
         for (var a = 0; a < attributes.length; a++) {
           
-          for (attribute in Object.entries(object)) {
-            console.log(attribute);
-          }
+          //for (attribute in Object.entries(object)) {
+          //  console.log(attribute);
+          //}
             
           //if (object[attributes[a].name] != null) {
           //  console.log(attributes[a].name + ":" + object[attributes[a]])
@@ -579,7 +577,7 @@ app.post('/scim/v2/Users',  function (req, res) {
         var scimUserResource = GetSCIMUserResourceLDAP(id, user['emailAddress'], id, user.name.givenName, user.name.middleName, user.name.familyName, req_url); 
         if (result.status == 0) {
 
-          //var ldapResource = GetLDAPResourceNG(schemaMap, user, req_url);
+          
           var ldapUserResource = GetLDAPUserResource(id, user['emailAddress'], id, user.name.givenName, user.name.middleName, user.name.familyName, req_url);
           
           client.add('uid=' + id + ',' + baseDN, ldapUserResource, function(err) {
