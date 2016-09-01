@@ -16,37 +16,43 @@
 // Dependencies
 var express = require('express');
 var app = express();
-var sqlite3 = require('sqlite3').verbose();  
 var url = require('url');
 var uuid = require('uuid');
 var assert = require('assert');
 var bodyParser = require('body-parser');
 var fs = require('fs');
-//var db = new sqlite3.Database('test.db'); 
 var Promise = require('promise');
+var ldap = require('ldapjs');
+
+var jsHelper = require('./jshelper');
 
 //LDAP Configuration
-var baseDN = "ou=system"
-var ldap = require('ldapjs');
+var baseDN = "ou=system";
 var client = ldap.createClient({
   url: 'ldap://127.0.0.1:10389'
 });
 client.bind('uid=admin,ou=system', 'password', function(err) {
   assert.ifError(err);
 });
-var schemaDN = "ou=schema"
+
+var schemaDN = "ou=schema";
 var ldapSchema = null;
+var defaultUserClass = "inetorgperson";
 
 //Service Provider Configuration
 var serviceProviderConfigPath = "./ServiceProviderConfigSchema.json";
 
 //SCIM Configuration
-var schemaPath = "./Schema.json";
+var scimSchemaPath = "./Schema.json";
 var scimSchema = null;
 
 //Schema Map
 var schemaMapPath = "./SchemaMap.json";
 var schemaMap = null;
+
+//Test Classes
+var userJsonPath = "./User.json";
+var userJson = "./User.json";
     
 //Express Settings
 app.use(express.static('public'));
@@ -117,10 +123,8 @@ function GetSCIMListObject(rows, startIndex, count, req_url, objectType) {
   var location = ""
 
   if (objectType == "Schemas") {
-
   }
   else {
-
   }
 
   for (var i = (startIndex-1); i < count; i++) {
@@ -161,7 +165,10 @@ function GetSCIMListLDAP(entries, startIndex, count, req_url) {
 
   var resources = [];
   var location = ""
+
+  //Iterate through each entry
   for (var i = (startIndex-1); i < count; i++) {
+
     location =  req_url + "/" + entries[i]["uid"];
 
     var result = getByValue(entries[i].attributes,"uid");
@@ -202,6 +209,7 @@ function GetSCIMListLDAP(entries, startIndex, count, req_url) {
 
   var resources = [];
   var location = ""
+
   for (var i = (startIndex-1); i < count; i++) {
     location =  req_url + "/" + entries[i]["uid"];
 
@@ -295,7 +303,6 @@ function GetSCIMUserResourceLDAP(id, emailAddress, userName, givenName, middleNa
  *  Returns JSON dictionary of LDAP request
  */
 function GetLDAPUserResource(id, emailAddress, userName, givenName, middleName, familyName, req_url) {
-
   var ldap_user = {
     //"dn": null,
     "uid": null,
@@ -321,8 +328,55 @@ function GetLDAPUserResource(id, emailAddress, userName, givenName, middleName, 
   //ldap_user["objectClass"][3] = "organizationalPerson";
   //
   ldap_user["displayName"] = userName;
-
   return ldap_user;
+}
+
+var GetLDAPResourceNG = function(schemaMap, object, req_url) {
+  return new Promise(function (fulfill, reject) {
+    var ldap_object = [];
+
+    if (object == null)
+      reject("Object is null");
+
+    if (schemaMap == null)  
+      reject("schemaMap is null");
+    
+    try {
+      console.log(schemaMap);
+      console.log(schemaMap.length);
+      console.log(object);
+      
+      if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:User') {
+        console.log("User");
+        var attributes = schemaMap[0].attributes;
+        for (var a = 0; a < attributes.length; a++) {
+          
+          for (attribute in Object.entries(object)) {
+            console.log(attribute);
+          }
+            
+          //if (object[attributes[a].name] != null) {
+          //  console.log(attributes[a].name + ":" + object[attributes[a]])
+          //}
+        }
+      }
+      else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:Group') {
+        console.log("Group");
+      }
+      else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:EnterpriseUser') {
+        console.log("Enterprise User");
+      }
+      else {
+        console.error("Unable to determine LDAP object type for SCIM resource");
+      }
+      
+      fulfill(ldap_object);
+
+    } catch (err) {
+      console.error(err);
+      reject(err);
+    }
+  });  
 }
 
 /**
@@ -361,18 +415,40 @@ function SCIMSuccess(message, statusCode) {
  *  ServiceProviderConfig
  */
 app.get("/scim/v2/ServiceProviderConfig", function (req, res){
-  fs.readFile( __dirname + '/' + serviceProviderConfigPath, function (err, data) {
-    if (err) {
+  return new Promise(function (fulfill, reject){
+    GetSCIMSchema().done(function (data) {
+      var serviceProviderConfig = data.toString();
+      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.end(serviceProviderConfig);
+    }, function(error) {
       var scim_error = SCIMError( "Cannot retrieve ServiceProviderConfig", "404");
       res.writeHead(404, {'Content-Type': 'text/plain'});
       res.end(JSON.stringify(scim_error));
-    }
-    if (data) {
-      var serviceProviderConfig = data.toString();
-      res.writeHead(409, {'Content-Type': 'text/plain'});
-      res.end(serviceProviderConfig);
-    }
-  });
+    });
+  });      
+});
+
+/**
+ *  Test Classes
+ */
+app.post('/TestCases',  function (req, res) {   
+  return new Promise(function (fulfill, reject){
+    OpenJSONDocument(userJsonPath).then(function (userJsonData) {
+      userJson = JSON.parse(userJsonData);
+      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.end("Success");
+      }, function (error) {
+        res.writeHead(404, {'Content-Type': 'text/plain'});
+        res.end(error);
+      }).then(function () {
+        schemaMapJson = GetLDAPResourceNG(schemaMap, userJson, 'https://localhost').then(function (schemaMapData) {
+        schemaMap = JSON.parse(schemaMapJson);
+      }, function (error) {
+        res.writeHead(404, {'Content-Type': 'text/plain'});
+        res.end(error);
+      })
+    });
+  });    
 });
 
 /**
@@ -383,28 +459,38 @@ app.get("/scim/v2/Schemas", function (req, res) {
     GetSCIMSchema().done(function (data) {
       res.writeHead(200, {'Content-Type': 'text/plain'});
       res.end(data);
-    }, reject);
+    }, function(error) {
+      res.writeHead(404, {'Content-Type': 'text/plain'});
+      res.end(error);
+    });
   });      
 });
 
 var GetSCIMSchema = function () {
   return new Promise(function (fulfill, reject) {
-    fs.readFile( __dirname + '/' + schemaPath, function (err, data) {
-      if (err) {
-        reject(SCIMError( "Cannot retrieve SCIM schema from schemaPath", "404"));
-      }
-      else {
-        fulfill(data.toString());
-      }
-    });  
+    OpenJSONDocument(scimSchemaPath).then(function (scimSchemaData) {
+      fulfill(scimSchemaData);
+    }, function(error) {
+      reject(error);
+    });
   });
 }
 
 var GetSchemaMap = function () {
   return new Promise(function (fulfill, reject) {
-    fs.readFile( __dirname + '/' + schemaMapPath, function (err, data) {
+    OpenJSONDocument(schemaMapPath).then(function (scimSchemaMap) {
+      fulfill(scimSchemaMap);
+    }, function(error) {
+      reject(error);
+    });
+  });
+}
+
+var OpenJSONDocument = function(filepath) {
+  return new Promise(function (fulfill, reject) {
+    fs.readFile( __dirname + '/' + filepath, function (err, data) {
       if (err) {
-        reject(SCIMError( "Cannot retrieve Schema Map from schemaMapPath", "404"));
+        reject(err);
       }
       else {
         fulfill(data.toString());
@@ -440,40 +526,7 @@ var LDAPSearch = function(filter, scope, attributes) {
       });
       result.on('end', function(result) {
         console.log('status: ' + result.status);
-        fulfill(result);
-      });
-    });
-  });
-}
-
-var GetLDAPSchema = function () {
- return new Promise(function (fulfill, reject) {  
-    var results = [];
-    var opts = {
-      filter: 'objectClass=*',
-      scope: 'sub',
-      attributes: []
-    };
-
-    client.search(schemaDN, opts, function(err, result) {  
-      result.on('searchEntry', function(entry) {        
-        if (entry == null) {
-          reject(SCIMError( "Entry Not Found", "404"));
-        }
-        else {
-          results.push(entry);
-        }
-      });
-      result.on('searchReference', function(referral) {
-        console.log('referral: ' + referral.uris.join());
-      });
-      result.on('error', function(err) {
-        console.error('error: ' + err.message);
-        reject(SCIMError( "Schema Not Found", "404"));
-      });
-      result.on('end', function(result) {
-        console.log('status: ' + result.status);
-        fulfill(result);
+        fulfill(results);
       });
     });
   });
@@ -526,7 +579,9 @@ app.post('/scim/v2/Users',  function (req, res) {
         var scimUserResource = GetSCIMUserResourceLDAP(id, user['emailAddress'], id, user.name.givenName, user.name.middleName, user.name.familyName, req_url); 
         if (result.status == 0) {
 
+          //var ldapResource = GetLDAPResourceNG(schemaMap, user, req_url);
           var ldapUserResource = GetLDAPUserResource(id, user['emailAddress'], id, user.name.givenName, user.name.middleName, user.name.familyName, req_url);
+          
           client.add('uid=' + id + ',' + baseDN, ldapUserResource, function(err) {
             assert.ifError(err);
           });
@@ -709,7 +764,6 @@ app.put("/scim/v2/Users/:userId", function (req, res) {
   var scim_error = SCIMError( "Put Operation Not Supported", "400");
   res.writeHead(404, {'Content-Type': 'application/text' });
   res.end(JSON.stringify(scim_error));
-
 });
 
 /**
@@ -906,7 +960,7 @@ app.get('/scim/v2/Groups',  function (req, res) {
 }); 
 
 /**
- *  Update a Group membership
+ *  Update Group membership
  */
 app.patch('/scim/v2/Groups',  function (req, res) {   
   var userId = req.params.userId;
@@ -922,7 +976,6 @@ app.patch('/scim/v2/Groups',  function (req, res) {
  *  Delete a Group
  */
 app.delete('/scim/v2/Groups',  function (req, res) {   
-  var userId = req.params.userId;
   var url_parts = url.parse(req.url, true);
   var req_url = url_parts.pathname;
 
@@ -930,6 +983,11 @@ app.delete('/scim/v2/Groups',  function (req, res) {
   res.writeHead(400, {'Content-Type': 'application/text' });
   res.end(JSON.stringify(scim_error));
 });
+
+
+/* 
+  LDAP
+*/
 
 /**
  *  Default URL
@@ -940,19 +998,22 @@ app.get('/scim/v2', function (req, res) { res.send('SCIM'); });
  *  Instantiates or connects to DB
  */
 var server = app.listen(8081, function () {
-
-    //LDAP, SCIM Schema and Schema Map
+    //Retrieve LDAP, SCIM Schema and Schema Map
     return new Promise(function (fulfill, reject) {
-      GetSCIMSchema().then(function (scimSchemaData) {
-        scimSchema = scimSchemaData;
+      OpenJSONDocument(scimSchemaPath).then(function (scimSchemaData) {
+        scimSchema = JSON.parse(scimSchemaData);
       }, reject).then(function (schemaData) {
-          LDAPSearch('objectclass=*','sub', []).then(function (schemaData) {
-          ldapSchema = schemaData;
-        }, reject).then(function (schemaMapData) {
-          GetSchemaMap().then(function (schemaMapData) {
-          schemaMap = schemaMapData;
-        }, reject)
+        LDAPSearch('objectclass=*','sub', []).then(function (schemaData) {
+        ldapSchema = schemaData;
+      }, reject).then(function (schemaMapData) {
+        OpenJSONDocument(schemaMapPath).then(function (schemaMapData) {
+        schemaMap = JSON.parse(schemaMapData);        
+      }, reject)
       }); 
     });
   });    
 });
+
+var reject = function(error) {
+  log.error(error);
+}

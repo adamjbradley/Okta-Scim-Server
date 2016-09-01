@@ -1,0 +1,29 @@
+{
+    "type": "content",
+    "version": null,
+    "entries": [
+        {
+            "dn": "uid=admin,ou=system",
+            "attributes": {
+                "uid": "admin",
+                "userPassword": "{SSHA}fFygtOkY+r49uYL7790sNY3F2lcgHoRXampcIQ==",
+                "publicKey": "0\\0\r\u0006\t*�H��\r\u0001\u0001\u0001\u0005\u0000\u0003K\u00000H\u0002A\u0000��R(����\b_��W�O���K��y\r�L>\u0012+����j\u0014g��8���ūi��ŕ��]\u0001OA��}��k�7A�\u0002\u0003\u0001\u0000\u0001",
+                "publicKeyFormat": "X.509",
+                "userCertificate": "0�\u0001|0�\u0001&\u0002\u0006\u0001VĂ�y0\r\u0006\t*�H��\r\u0001\u0001\u0005\u0005\u00000B1\u000b0\t\u0006\u0003U\u0004\u0006\u0013\u0002US1\f0\n\u0006\u0003U\u0004\n\u0013\u0003ASF1\u00120\u0010\u0006\u0003U\u0004\u000b\u0013\tDirectory1\u00110\u000f\u0006\u0003U\u0004\u0003\u0013\bApacheDS0\u001e\u0017\r160826014156Z\u0017\r170826014156Z0K1\u000b0\t\u0006\u0003U\u0004\u0006\u0013\u0002US1\f0\n\u0006\u0003U\u0004\n\u0013\u0003ASF1\u00120\u0010\u0006\u0003U\u0004\u000b\u0013\tDirectory1\u001a0\u0018\u0006\u0003U\u0004\u0003\u0013\u0011MacBook-Pro.local0\\0\r\u0006\t*�H��\r\u0001\u0001\u0001\u0005\u0000\u0003K\u00000H\u0002A\u0000��R(����\b_��W�O���K��y\r�L>\u0012+����j\u0014g��8���ūi��ŕ��]\u0001OA��}��k�7A�\u0002\u0003\u0001\u0000\u00010\r\u0006\t*�H��\r\u0001\u0001\u0005\u0005\u0000\u0003A\u0000Z>2�ޜT'�![�:��M��\u0007Xh� \u0016�93\u00072��l��T��\u000e�cJ1^$\rϱn�`���Gp\u000f��qp9�\u001d�",
+                "privateKey": "0�\u0001U\u0002\u0001\u00000\r\u0006\t*�H��\r\u0001\u0001\u0001\u0005\u0000\u0004�\u0001?0�\u0001;\u0002\u0001\u0000\u0002A\u0000��R(����\b_��W�O���K��y\r�L>\u0012+����j\u0014g��8���ūi��ŕ��]\u0001OA��}��k�7A�\u0002\u0003\u0001\u0000\u0001\u0002A\u0000������\u0002\u001fU�\"-���h�*_�k�\u0013\u0005��c�\u0015�P�\u000b����&�]V����\"�&��N��\u001b���s�����\u0001\u0002!\u0000�A\f�3R��g:x�e��.D�j3�c<;��R��G\b�\u0002!\u0000�<��3\u0014)M�6�\\0X��/\u001eG��7�����q���c\u0002!\u0000���7]\u001d�����\u000eI��oB����zfBr�(��?&\u0001\u0002 ,\u0012tH�\u000f�&{n�\u0000�s!���y\t���tZe�\u0018h�\u0002 \u00025�F�\r��H\u0005\u0006>/���J�F\u0014��o^@\u0015�Kae�N",
+                "keyAlgorithm": "RSA",
+                "privateKeyFormat": "PKCS#8",
+                "objectClass": [
+                    "top",
+                    "person",
+                    "organizationalPerson",
+                    "inetOrgPerson",
+                    "tlsKeyInfo"
+                ],
+                "cn": "system administrator",
+                "sn": "administrator",
+                "displayName": "Directory Superuser"
+            }
+        }
+    ]
+}

@@ -1,13 +1,31 @@
-version: 1
-
-dn: uid=user1-2,ou=system
+dn: uid=admin,ou=system
+uid: admin
+userPassword:: e1NTSEF9ZkZ5Z3RPa1krcjQ5dVlMNzc5MHNOWTNGMmxjZ0hvUlhhbXBjSVE9PQ=
+ =
+publicKey:: MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJ/HUiixn4fTCF+5klfxT4qXo0vE5HkNrk
+ w+EivAupD9ahRnhKk41sXwxatp5M/FlYSSXQFPQZHYfZSXa683QeMCAwEAAQ==
+publicKeyFormat: X.509
+userCertificate:: MIIBfDCCASYCBgFWxIK5eTANBgkqhkiG9w0BAQUFADBCMQswCQYDVQQGEwJV
+ UzEMMAoGA1UEChMDQVNGMRIwEAYDVQQLEwlEaXJlY3RvcnkxETAPBgNVBAMTCEFwYWNoZURTMB4XD
+ TE2MDgyNjAxNDE1NloXDTE3MDgyNjAxNDE1NlowSzELMAkGA1UEBhMCVVMxDDAKBgNVBAoTA0FTRj
+ ESMBAGA1UECxMJRGlyZWN0b3J5MRowGAYDVQQDExFNYWNCb29rLVByby5sb2NhbDBcMA0GCSqGSIb
+ 3DQEBAQUAA0sAMEgCQQCfx1IosZ+H0whfuZJX8U+Kl6NLxOR5Da5MPhIrwLqQ/WoUZ4SpONbF8MWr
+ aeTPxZWEkl0BT0GR2H2Ul2uvN0HjAgMBAAEwDQYJKoZIhvcNAQEFBQADQQBaPjKu3pxUJ7EhW786y
+ edN0uUHWGjmIBbCOTMHMoOmbKH6VJDzDsxjSjFeJA3PsW7+YOLmskdwD6q7cXA53B2F
+privateKey:: MIIBVQIBADANBgkqhkiG9w0BAQEFAASCAT8wggE7AgEAAkEAn8dSKLGfh9MIX7mSV
+ /FPipejS8TkeQ2uTD4SK8C6kP1qFGeEqTjWxfDFq2nkz8WVhJJdAU9Bkdh9lJdrrzdB4wIDAQABAk
+ EAnpCBoa79Ah9VjSIt8KajaIgqX5RrpRMFqdZj1BX1UNML2eaV1SaaXVa69obyIusmtZxOlpYb5em
+ 8c6e09+PPAQIhAMpBDOszUoPxZzp4n2Wl7y5Eomoz/WM8O5a7UrG1RwiBAiEAyjy+xTMUKU36NqJc
+ MFj1mS8eR4z1N/qgoLe5cfOC+GMCIQCwnJU3XR2U8dv+hw5JqNhvQqfArZ16ZkJyoSjY3T8mAQIgL
+ MKfEnRIrQ+mJntu3gCCcyH7mKh5Cae973RaZf8YaLMCIAI1+Eb1DfnfSAUGPi+nm7ZKhkYUu41vXk
+ AV4kthZeRO
+keyAlgorithm: RSA
+privateKeyFormat: PKCS#8
 objectClass: top
-objectClass: inetOrgPerson
 objectClass: person
 objectClass: organizationalPerson
-cn: user1-2
-mail: user1-2@unifysolutions.net
-sn: 1-2
-displayName: user1-2
-uid: user1-2
-
+objectClass: inetOrgPerson
+objectClass: tlsKeyInfo
+cn: system administrator
+sn: administrator
+displayName: Directory Superuser

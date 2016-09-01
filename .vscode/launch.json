@@ -6,7 +6,6 @@
             "type": "node",
             "request": "launch",
             "program": "${workspaceRoot}/node_scim_server.js",
-            //"program": "${workspaceRoot}/ldapharness.js",
             "stopOnEntry": false,
             "args": [],
             "cwd": "${workspaceRoot}",

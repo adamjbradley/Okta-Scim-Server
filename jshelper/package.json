@@ -1,0 +1,25 @@
+{
+  "name": "jshelper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "keywords": [
+    "javascript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bluebird": "^3.4.5",
+    "chai": "^3.5.0",
+    "fs": "0.0.1-security",
+    "ldapjs": "^1.0.0",
+    "ldif": "^0.5.1",
+    "promise": "^7.1.1"
+  },
+  "dependencies": {
+    "automapper-ts": "^1.7.0"
+  }
+}
