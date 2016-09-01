@@ -255,6 +255,34 @@ module.exports = {
         }
         else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:Group') {
           console.log("Processing a Group");
+
+          var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
+          var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
+
+          automapper
+              .createMap(fromKey, toKey)
+              .forMember("resourceType", "Group")
+              .forMember('created', Date.now)
+              .forMember('LastModified', Date.now)
+              .forMember('location', 'https://localhost')
+              .forMember('version', null)
+              .ignoreAllNonExisting();
+          ldap_object = automapper.map(fromKey, toKey, object);
+      
+          automapper
+              .createMap(fromKey, toKey)
+              .forMember("schemas", ['urn:ietf:params:scim:schemas:core:2.0:Group'])
+              .forMember('id', function(opts) { opts.mapFrom('uid'); })
+              .forMember('username', function(opts) { opts.mapFrom('dn'); })
+              .forMember('name.givenName', function(opts) { opts.mapFrom('givenName'); })
+              .forMember('name.familyName', function(opts) { opts.mapFrom('sn'); })
+              .forMember('emails', function(opts) { opts.mapFrom('mail'); })
+              .forMember('displayName', function(opts) { opts.mapFrom('displayName'); })
+              .forMember('meta', ldap_object)
+              .ignoreAllNonExisting();
+
+          // act
+          ldap_object = automapper.map(fromKey, toKey, ldap_object);
         }
         else if (object.schemas[0] == 'urn:ietf:params:scim:schemas:core:2.0:EnterpriseUser') {
           console.log("Processing an Enterprise User");
@@ -262,6 +290,7 @@ module.exports = {
         else {
           console.error("Unable to determine LDAP object type for SCIM resource");
         }
+
         fulfill(ldap_object);
 
       } catch (ex) {
@@ -342,6 +371,55 @@ module.exports = {
       }
     });  
   },
+
+  LDAPToSCIMGroupObject: function(schemaMap, object, req_url) {
+    return new Promise(function (fulfill, reject) {
+      try {
+
+        var ldap_object = [];
+        if (object == null) 
+          new Error("Object is null");
+
+        if (schemaMap == null)  
+          new Error("SchemaMap is null");
+                
+        var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
+        var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
+
+        //Groups
+        var members = [];
+        for (var i=0; i<object.uniqueMember.length; i++){
+          ldap_object = [];
+          automapper
+              .createMap(fromKey, toKey)
+              .forMember('value', function(opts) { return object.uniqueMember[i]; })
+              .forMember('$ref', function(opts) { return "https://localhost/" + opts.sourceObject['cn']; })
+              .forMember('display', function(opts) { opts.mapFrom('cn'); })
+              .ignoreAllNonExisting();
+          // act
+          ldap_object = automapper.map(fromKey, toKey, object);
+          members.push(ldap_object);
+        }
+
+        automapper
+            .createMap(fromKey, toKey)
+            .forMember("schemas", ['urn:ietf:params:scim:schemas:core:2.0:Group'])
+            .forMember('id', function(opts) { opts.mapFrom('cn'); })
+            .forMember('displayName', function(opts) { opts.mapFrom('description'); })
+            .forMember('members', members)
+            .ignoreAllNonExisting();
+
+        // act
+        ldap_object = automapper.map(fromKey, toKey, object);
+
+        fulfill(ldap_object);
+      } catch (ex) {
+        console.error(ex.message);
+        reject(ex);
+      }
+    });  
+  },
+
 
   OpenLDIFDocument: function(filepath) {
     return new Promise(function (fulfill, reject) {

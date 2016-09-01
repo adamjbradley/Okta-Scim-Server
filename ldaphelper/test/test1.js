@@ -24,7 +24,9 @@ var should = require('chai').should(),
     OpenJSONDocument = jsHelper.OpenJSONDocument,
     GetSCIMList = ldapHelper.GetSCIMList,
     SCIMToLDAPModifyObject = ldapHelper.SCIMToLDAPModifyObject,
-    JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject;
+    JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject,
+    LDAPToSCIMGroup = ldapHelper.LDAPToSCIMGroup;
+  
   
 var opts = {
   filter: 'objectclass=*',

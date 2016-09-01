@@ -37,7 +37,8 @@ var LDAPConnect = ldapHelper.LDAPConnect,
   GetSCIMList = ldapHelper.GetSCIMList,
   OpenJSONDocument = jsHelper.OpenJSONDocument,
   SCIMToLDAPModifyObject = ldapHelper.SCIMToLDAPModifyObject,
-  JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject;
+  JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject,
+  LDAPToSCIMGroupObject = ldapHelper.LDAPToSCIMGroupObject;
 
 //LDAP Configuration
 var client = null;
@@ -157,8 +158,6 @@ app.get("/LDAPSchema", function (req, res) {
 
 /**
  *  Return filtered Users
- *
- *  Pagination supported
  */
 app.get("/scim/v2/Users", function (req, res) {
   var url_parts = url.parse(req.url, true);
@@ -395,10 +394,9 @@ app.put("/scim/v2/Users/:userId", function (req, res) {
       }
 
     }).catch(function(message) {
-      console.log('Error:' + message);
-      var scim_error = SCIMError( "Unable to convert LDAP to SCIM", "409");
-      res.writeHead(409, {'Content-Type': 'text/plain'});
-      res.end(JSON.stringify(scim_error));
+        var scim_error = SCIMError( "Resource does not exists", "409");
+        res.writeHead(409, {'Content-Type': 'text/plain'});
+        res.end(JSON.stringify(scim_error));
     }).finally(function() {
     });
 
@@ -418,6 +416,7 @@ app.patch("/scim/v2/Users/:userId", function (req, res) {
   res.end(JSON.stringify(scim_error));
   return; 
 
+  /*
   var op = "";
   var value = "";  
   var operations = req.body.Operations;    
@@ -436,10 +435,59 @@ app.patch("/scim/v2/Users/:userId", function (req, res) {
       console.log("Patch: Operation not supported");
     }  
   }
-
+  */
 
 });
 
+/**
+ *  Groups
+ */
+
+/**
+ *  Return filtered Groups
+ */
+app.get("/scim/v2/Groups", function (req, res) {
+  var url_parts = url.parse(req.url, true);
+  var query = url_parts.query;
+  startIndex  = query["startIndex"];
+  count = query["count"];
+  filter = query["filter"];
+
+  var req_url =  url_parts.pathname;
+  var queryAtrribute = "";
+  var queryValue = "";
+
+  var opts = {
+    filter: '(ObjectClass=groupOfUniqueNames)',
+    scope: 'sub',
+    attributes: []
+  };
+
+  var scimObjects = [];
+  LDAPSearchAsyncPromise(client, baseDN, opts)
+    .then(function (result) {
+      return LDAPSearchPromise(result, 'Object not found');
+    }).then(function(result) {
+
+      for (var i=0; i<result.length; i++){
+        LDAPToSCIMGroupObject(schemaMap, result[i], "http://localhost", "o=system")
+          .then(function (result) {
+            console.log(result);
+            scimObjects.push(result);
+          }).catch(function(message) {
+            console.log('Error:' + message);
+          });
+      }
+
+    })
+    .catch(function(message) {
+      console.log('Error:' + message);
+    }).finally(function(result){
+      var scimResource = GetSCIMList(100, 0, scimObjects, 'http://localhost');
+      res.writeHead(200, {'Content-Type': 'application/json'})
+      res.end(JSON.stringify(scimResource))
+    });
+});
 
 /**
  *  Default URL
