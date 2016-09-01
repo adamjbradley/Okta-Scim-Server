@@ -217,7 +217,7 @@ app.get("/scim/v2/Users/:userId", function (req, res){
     }).finally(function() {
     });
 
-  }); 
+}); 
 
 /**
  *  Add User
@@ -274,6 +274,46 @@ app.post('/scim/v2/Users',  function (req, res) {
     });
 
 }); 
+
+
+app.delete("/scim/v2/Users/:userId", function (req, res) {
+
+  var id = req.params.userId;
+  var url_parts = url.parse(req.url, true);
+  var req_url =  url_parts.pathname;
+
+  var opts = {
+    filter: '(|(uid=' + id + '))',
+    scope: 'sub',
+    attributes: []
+  };
+
+  var exists = false;
+  var results = [];
+  LDAPSearchAsyncPromise(client, baseDN, opts)
+    .then(function (result) {
+      return LDAPSearchPromise(result, 'Object not found');
+    }).then(function(result) {
+        
+      exists = true;
+      client.del('uid=' + id + ',' + baseDN, function(err) {
+        assert.ifError(err);
+      });
+
+      var scim_message = SCIMSuccess( String("Success"), "400");
+      res.writeHead(201, {'Content-Type': 'text/json'});
+      res.end(JSON.stringify(scim_message));      
+
+    }).catch(function(message) {
+      var scim_error = SCIMError( "User does not exist", "400");
+      res.writeHead(400, {'Content-Type': 'text/plain'});
+      res.end(JSON.stringify(scim_error));
+      
+    }).finally(function() {
+    });
+
+});    
+
 
 /**
  *  Default URL
