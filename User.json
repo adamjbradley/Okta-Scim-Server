@@ -5,8 +5,21 @@
   "id": "user1-3",
   "userName": "uid=user1-3,ou=system",
   "name": {
-    "givenName": "user1-3",
-    "familyName": "user1-3"
+    "givenName": "1-3",
+    "familyName": "user"
   },
-  "emailAddress": "user1-3@unifysolutions.net"
+  "emails": [
+    {
+      "value": "user1-3@unifysolutions.net",
+      "display": "User1-3",
+      "type": "work",
+      "primary": true
+    },
+    {
+      "value": "auser@unifysolutions.net",
+      "display": "auser",
+      "type": "home",
+      "primary": false
+    }
+  ]
 }

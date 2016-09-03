@@ -25,7 +25,8 @@ var should = require('chai').should(),
     GetSCIMList = ldapHelper.GetSCIMList,
     SCIMToLDAPModifyObject = ldapHelper.SCIMToLDAPModifyObject,
     JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject,
-    LDAPToSCIMGroup = ldapHelper.LDAPToSCIMGroup;
+    LDAPToSCIMGroup = ldapHelper.LDAPToSCIMGroup,
+    SCIMToLDAPObjectNG = ldapHelper.SCIMToLDAPObjectNG;
   
   
 var opts = {
@@ -92,7 +93,6 @@ describe('#LDAP Methods', function() {
     console.log('0.5');
   });
 
-  /*
   it('Retrieve the Schema', function() {
     LDAPSearchAsyncPromise(client, schemaDN, opts)
       .then(function (res) {
@@ -104,7 +104,6 @@ describe('#LDAP Methods', function() {
         console.log('Error:' + message);
       });
   });
-  */
   
   it('Search for a particular User in LDAP', function() {
     var opts = {
@@ -178,8 +177,7 @@ describe('#LDAP Methods', function() {
 
 // Object Conversion
 describe('#Convert LDAP to SCIM Object and back again', function() {
-  /*
-  it("Opens SCIM Schema Map", function (done) {
+  it("Opens SCIM Schema Map NG", function (done) {
     var result = OpenJSONDocument(schemaMapPath);
     result.then(function(_scimSchemaMap) {
       result.should.be.a('Object');
@@ -221,8 +219,7 @@ describe('#Convert LDAP to SCIM Object and back again', function() {
   });
   */
 
-  
-  it("Opens a JSON User", function (done) {
+  it("Opens a JSON User NG", function (done) {
     var result = OpenJSONDocument(scimUserPath);
     result.then(function(_scimObject) {
       result.should.be.a('Object');
@@ -234,8 +231,7 @@ describe('#Convert LDAP to SCIM Object and back again', function() {
     });
   });
 
-  /*
-  it("Converts a SCIMObject into an LDAPObject using the JSON User and SCIM Schema Map", function (done) {
+  it("Converts a SCIMObject into an LDAPObject using the JSON User and SCIM Schema Map ", function (done) {
     var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
     var result = SCIMToLDAPObject(scimSchemaMap, scimObject, "http://localhost", "o=system", objectClass);
     result.then(function(data) {
@@ -247,8 +243,21 @@ describe('#Convert LDAP to SCIM Object and back again', function() {
       done();
     });  
   });
-  */
-  
+
+  it("Converts a SCIMObject into an LDAPObject using the JSON User and SCIM Schema Map NG", function (done) {
+    var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
+    var result = SCIMToLDAPObjectNG(scimSchemaMap, scimObject, "http://localhost", "o=system", objectClass);
+    result.then(function(data) {
+      result.should.be.a('Object');
+      console.log(data);
+      done();
+    }, function(error) {
+      console.log("Error: " + error);
+      done();
+    });  
+  });
+
+  /*  
   it("Converts a SCIMObject into an LDAPModifyObject using the JSON User and SCIM Schema Map", function (done) {
     var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
     var result = SCIMToLDAPModifyObject(scimSchemaMap, scimObject, "http://localhost", "o=system", objectClass);
@@ -260,9 +269,8 @@ describe('#Convert LDAP to SCIM Object and back again', function() {
       console.log("Error: " + error);
       done();
     });  
-  });
-  
+  });  
+  */
+
 
 });
-
-
