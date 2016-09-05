@@ -434,85 +434,103 @@ module.exports = {
         var fromKey = '{C4056539-FA86-4398-A10B-C41D3A791F26}';
         var toKey = '{01C64E8D-CDB5-4307-9011-0C7F1E70D115}';
 
+        var result = [];
         automapper
             .createMap(fromKey, toKey)
             .convertUsing(function (resolutionContext) {
               //Loop through each item in the schema map, strip blanks!
-              var result = {};
+              var attributes = [];
 
               for (var i=0; i < scimSchemaMap[0].attributes.length; i++) {
 
-                  //Read through each attribute        
-                  if (object[scimSchemaMap[0].attributes[i].name] != null) {
-                    console.log(scimSchemaMap[0].attributes[i].name + ": " + object[scimSchemaMap[0].attributes[i].name]);
+                //Read through each attribute
+                if (object[scimSchemaMap[0].attributes[i].name] != null) {
 
-                    //Multi-valued
-                    if (scimSchemaMap[0].attributes[i].multiValued == true) {
-                      var value = object[scimSchemaMap[0].attributes[i].name];
-                      console.log("MV: " + object[scimSchemaMap[0].attributes[i].name].length + ": " + JSON.stringify(value));
+                  var attributeName = scimSchemaMap[0].attributes[i].name;
+                  var attributeValue = object[scimSchemaMap[0].attributes[i].name];
+                  console.log(attributeName + ": " + attributeValue);
 
-                      // Iterate through each value
-                      for (var j=0; j < object[scimSchemaMap[0].attributes[i].name].length; j++) {
-                        value = object[scimSchemaMap[0].attributes[i].name][j];
-                        //console.log(value);
+                  //Multi-valued
+                  if (scimSchemaMap[0].attributes[i].multiValued == true) {
 
-                        //subAttributes
-                        if (scimSchemaMap[0].attributes[i].subAttributes != null) {
-                          console.log("SA " + scimSchemaMap[0].attributes[i].subAttributes.length);  
-                          
-                          for (var k=0; k < scimSchemaMap[0].attributes[i].subAttributes.length; k++) {
-                            var subAttributeName = scimSchemaMap[0].attributes[i].subAttributes[k].name;
-                            //console.log("SAN " + subAttributeName);
+                    var subAttributes = [];
 
-                            value = object[scimSchemaMap[0].attributes[i].name][j][subAttributeName];
-                            console.log("SAV " + subAttributeName + ": " + JSON.stringify(value));
-                          }                                                  
-                        }
-                        else
-                        {
-                          throw e;
-                        }
-                      }                     
-                    }                  
-                    else
-                    {
-                      console.log("SV");
+                    //var value = object[scimSchemaMap[0].attributes[i].name];
+                    //console.log("MV: " + object[scimSchemaMap[0].attributes[i].name].length + ": " + JSON.stringify(value));
+
+                    // Iterate through each value
+                    for (var j=0; j < object[scimSchemaMap[0].attributes[i].name].length; j++) {
+                      value = object[scimSchemaMap[0].attributes[i].name][j];
+                      
+                      var allValues = [];
+
+                      //subAttributes
                       if (scimSchemaMap[0].attributes[i].subAttributes != null) {
-                        console.log("SAV");
-
-                        //attribute
-                        var attributeName = scimSchemaMap[0].attributes[i].name;
-                        console.log("AN " + attributeName);
-                        
-                        //subAttributes
                         console.log("SA " + scimSchemaMap[0].attributes[i].subAttributes.length);  
                         
                         for (var k=0; k < scimSchemaMap[0].attributes[i].subAttributes.length; k++) {
-
                           var subAttributeName = scimSchemaMap[0].attributes[i].subAttributes[k].name;
-                          var subAttributeValue = object[attributeName][subAttributeName];
+                          //console.log("SAN " + subAttributeName);
 
-                          if (subAttributeValue != null) {
-                            console.log("SAN " + subAttributeName);
-                            console.log(JSON.stringify(subAttributeValue));
-                          }
+                          value = object[scimSchemaMap[0].attributes[i].name][j][subAttributeName];
+                          console.log("SAV " + subAttributeName + ": " + JSON.stringify(value));
 
-                          /*
-                          if (object[scimSchemaMap[0].attributes[attributeName].subAttributes[subAttributeName]] != null) {
-                            value = object[scimSchemaMap[0].attributes[attributeName].subAttributes[subAttributeName]];
-                            console.log("SAV " + subAttributeName + ": " + JSON.stringify(value));
-                          }
-                          else {
-                            console.log("SAV cannot find " + subAttributeName);
-                          }
-                          */
-                        }                                                  
+                          allValues.push({ value });        
+                        }
+
+                        subAttributes.push( allValues );
                       }
-                    }                    
-                  }
-                  
-                  
+                      else
+                      {
+                        throw e;
+                      }
+                    }    
+
+                    console.log(JSON.stringify(subAttributes));
+                    attributes.push(subAttributes); 
+                    
+                    //console.log(JSON.stringify(subAttributes));        
+                  }                  
+                  else
+                  {
+                    console.log("SV");
+                    if (scimSchemaMap[0].attributes[i].subAttributes != null) {
+                      
+                      var subAttributes = [];
+
+                      console.log("SAV");
+
+                      //attribute
+                      var attributeName = scimSchemaMap[0].attributes[i].name;
+                      console.log("AN " + attributeName);
+                      
+                      //subAttributes
+                      console.log("SA " + scimSchemaMap[0].attributes[i].subAttributes.length);  
+                      
+                      for (var k=0; k < scimSchemaMap[0].attributes[i].subAttributes.length; k++) {
+
+                        var subAttributeName = scimSchemaMap[0].attributes[i].subAttributes[k].name;
+                        var subAttributeValue = object[attributeName][subAttributeName];
+
+                        if (subAttributeValue != null) {
+                          console.log("SAN " + subAttributeName);
+                          console.log(JSON.stringify(subAttributeValue));
+
+                          subAttributes.push({ [subAttributeName] : subAttributeValue});
+                        }
+                      }
+
+                      //
+                                                  
+                    }
+
+                  } 
+                  result.push( { [attributeName] : subAttributes } );
+                   
                 }
+                
+              }
+                console.log(JSON.stringify(result));
 
               return { propA: resolutionContext.sourceValue.propA + ' (custom mapped with resolution context)' }
             });
