@@ -223,9 +223,11 @@
       },
       {
         "name" : "emails",
-        "ldapName" : "emails",
+        "ldapName" : "email",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "Email addresses for the user.  The value SHOULD be canonicalized by the service provider, e.g., 'bjensen@example.com' instead of 'bjensen@EXAMPLE.COM'. Canonical type values of 'work', 'home', and 'other'.",
         "required" : false,
         "subAttributes" : [
@@ -286,6 +288,8 @@
         "ldapName" : "phoneNumbers",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "Phone numbers for the User.  The value SHOULD be canonicalized by the service provider according to the format specified in RFC 3966, e.g., 'tel:+1-201-555-0123'. Canonical type values of 'work', 'home', 'mobile', 'fax', 'pager', and 'other'.",
         "required" : false,
         "subAttributes" : [
@@ -347,6 +351,8 @@
         "ldapName" : "ims",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "Instant messaging addresses for the User.",
         "required" : false,
         "subAttributes" : [
@@ -415,6 +421,8 @@
         "ldapName" : "photos",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "URLs of photos of the User.",
         "required" : false,
         "subAttributes" : [
@@ -473,6 +481,8 @@
         "ldapName" : "addresses",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "A physical mailing address for this User. Canonical type values of 'work', 'home', and 'other'.  This attribute is a complex type with the following sub-attributes.",
         "required" : false,
         "subAttributes" : [
@@ -567,6 +577,8 @@
         "ldapName" : "groups",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "A list of groups to which the user belongs, either through direct membership, through nested groups, or dynamically calculated.",
         "required" : false,
         "subAttributes" : [
@@ -630,6 +642,8 @@
         "ldapName" : "entitlements",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "A list of entitlements for the User that represent a thing the User has.",
         "required" : false,
         "subAttributes" : [
@@ -683,6 +697,8 @@
         "ldapName" : "roles",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "A list of roles for the User that collectively represent who the User is, e.g., 'Student', 'Faculty'.",
         "required" : false,
         "subAttributes" : [
@@ -737,6 +753,8 @@
         "ldapName" : "x509Certificates",
         "type" : "complex",
         "multiValued" : true,
+        "flatten" : true,
+        "usePrimary" : true,
         "description" : "A list of certificates issued to the User.",
         "required" : false,
         "caseExact" : false,

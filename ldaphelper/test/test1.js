@@ -26,7 +26,8 @@ var should = require('chai').should(),
     SCIMToLDAPModifyObject = ldapHelper.SCIMToLDAPModifyObject,
     JSONToLDAPModifyObject = ldapHelper.JSONToLDAPModifyObject,
     LDAPToSCIMGroup = ldapHelper.LDAPToSCIMGroup,
-    SCIMToLDAPObjectNG = ldapHelper.SCIMToLDAPObjectNG;
+    SCIMToLDAPObjectNG = ldapHelper.SCIMToLDAPObjectNG,
+    ProcessMVAttribute = ldapHelper.ProcessMVAttribute;
   
   
 var opts = {
@@ -243,21 +244,21 @@ describe('#Convert LDAP to SCIM Object and back again', function() {
       done();
     });  
   });
-
+  
   it("Converts a SCIMObject into an LDAPObject using the JSON User and SCIM Schema Map NG", function (done) {
     var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
     var result = SCIMToLDAPObjectNG(scimSchemaMap, scimObject, "http://localhost", "o=system", objectClass);
     result.then(function(data) {
       result.should.be.a('Object');
-      console.log(data);
+      //console.log(data);
       done();
     }, function(error) {
       console.log("Error: " + error);
       done();
     });  
   });
-
-  /*  
+  
+  /*
   it("Converts a SCIMObject into an LDAPModifyObject using the JSON User and SCIM Schema Map", function (done) {
     var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
     var result = SCIMToLDAPModifyObject(scimSchemaMap, scimObject, "http://localhost", "o=system", objectClass);
