@@ -1,0 +1,20 @@
+{
+  "name": "scim-gateway",
+  "version": "1.0.0",
+  "description": "SCIM to LDAP gateway",
+  "main": "node_scim_serverNG.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamjbradley/Okta-Scim-Server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/adamjbradley/Okta-Scim-Server/issues"
+  },
+  "homepage": "https://github.com/adamjbradley/Okta-Scim-Server#readme"
+}
+
