@@ -637,9 +637,7 @@ var self = module.exports = {
           throw Error("Object is null");
         if (scimSchemaMap == null)  
           throw Error("SchemaMap is null");
-
-        console.log(object);
-
+        
         //Result object    
         var result = [];
     
@@ -654,16 +652,32 @@ var self = module.exports = {
           var attributeValue = null;
 
           if (scimSchemaMap[0].attributes[i].multiValued == true) {
-            var attributeValue = object[attributeName];
+            var attributeValue = object[0][attributeName];
             console.log("MV: " + attributeName + "(destinationAttributeName)" + destinationAttributeName + " : " + attributeValue);
+
           }
           else if (scimSchemaMap[0].attributes[i].multiValued == false) { 
             if (scimSchemaMap[0].attributes[i].type == "complex" ) {
-              var attributeValue = object[attributeName];
-              console.log("SV Complex: " + attributeName + ": " + attributeValue);
+
+              //LDAP is flat
+              
+              //TODO
+              for (var k=0; k < scimSchemaMap[0].attributes[i].subAttributes.length; k++) {
+                var subAttributeName = scimSchemaMap[0].attributes[i].subAttributes[k].ldapName;
+                
+                //emails, phoneNumbers, ims, photos, addresses, groups, entitlements, roles, x509Certificates
+                value = object[0][subAttributeName];
+                console.log("SAV " + subAttributeName + ": " + value);
+
+                //value = object[0][scimSchemaMap.attributes[i].name][j][subAttributeName];
+                //if (subAttributeName == "value")
+                //  values.push( { [destinationAttribute] : value  } );
+                //entry = { [subAttributeName] : value };          
+                //subAttributes.push(entry);
+              }
             }
             else {
-              var attributeValue = object[attributeName];      
+              var attributeValue = object[0][attributeName];
               console.log("SV: " + attributeName + ": " + attributeValue);
               // Simple Type      
               if (attributeValue != null)
