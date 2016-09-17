@@ -183,7 +183,7 @@ app.get("/scim/v2/Users", function (req, res) {
     }).then(function(result) {
 
       for (var i=0; i<result.length; i++){
-        LDAPToSCIMObject(schemaMap, result[i], "http://localhost", "o=system")
+        LDAPToSCIMObject(schemaMap, result[i], "http://localhost", baseDN)
           .then(function (result) {
             scimObjects.push(result);
           }).catch(function(message) {
@@ -231,7 +231,7 @@ app.get("/scim/v2/Users/:userId", function (req, res){
       }
     }).then(function(result) {
 
-      LDAPToSCIMObject(schemaMap, users, "http://localhost", "o=system")
+      LDAPToSCIMObject(schemaMap, users, "http://localhost", baseDN)
         .then(function (result) {
           res.writeHead(200, {'Content-Type': 'text/plain'});
           res.end(JSON.stringify(result));
@@ -284,7 +284,7 @@ app.post('/scim/v2/Users',  function (req, res) {
       }
     }).catch(function(message) {
       var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
-      SCIMToLDAPObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
+      SCIMToLDAPObject(schemaMap, users, "http://localhost", baseDN, objectClass)      
         .then(function (result) {
           client.add('uid=' + id + ',' + baseDN, result, function(err) {
             assert.ifError(err);
@@ -300,7 +300,7 @@ app.post('/scim/v2/Users',  function (req, res) {
       
     }).finally(function() {
     });
-
+    
 }); 
 
 /**
@@ -369,7 +369,7 @@ app.put("/scim/v2/Users/:userId", function (req, res) {
     }).then(function(result) {
       if (result.length == 1) {
         var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
-        SCIMToLDAPModifyObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
+        SCIMToLDAPModifyObject(schemaMap, users, "http://localhost", baseDN, objectClass)      
           .then(function (result) {
             client.modify('uid=' + id + ',' + baseDN, result, function(err) {
               assert.ifError(err);
@@ -467,7 +467,7 @@ app.get("/scim/v2/Groups", function (req, res) {
     }).then(function(result) {
 
       for (var i=0; i<result.length; i++){
-        LDAPToSCIMGroupObject(schemaMap, result[i], "http://localhost", "o=system")
+        LDAPToSCIMGroupObject(schemaMap, result[i], "http://localhost", baseDN)
           .then(function (result) {
             scimObjects.push(result);
           }).catch(function(message) {
