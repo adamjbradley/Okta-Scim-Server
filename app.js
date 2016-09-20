@@ -45,20 +45,16 @@ var client = null;
 var failDN = "uid=auser,ou=system";
 var schemaDN = "ou=schema";
 
-<<<<<<< HEAD:node_scim_serverNG.js
 //Local Server
-=======
 var ldapUrl = "ldap://idcmigrationservice.cloudapp.net:389";
 var username = "admin";
 var password = "1password2";
 var baseDN = "ou=UnifySolutions";
 
->>>>>>> origin/master:app.js
 //var ldapUrl = 'ldap://127.0.0.1:10389';
 //var username = "uid=admin,ou=system";
 //var password = "password";
 //var baseDN = "ou=system";
-<<<<<<< HEAD:node_scim_serverNG.js
 
 //IdB
 var ldapUrl = 'ldap://idcmigrationservice.cloudapp.net:389';
@@ -68,8 +64,6 @@ var baseDN = "DC=IdentityBroker";
 var baseUserClass = "person";
 var baseGroupClass = "groups";
 var namingAttribute = "detnumber";
-=======
->>>>>>> origin/master:app.js
 
 //LDAP Schema
 var ldapSchema = null;
