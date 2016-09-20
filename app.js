@@ -42,12 +42,18 @@ var LDAPConnect = ldapHelper.LDAPConnect,
 
 //LDAP Configuration
 var client = null;
-var ldapUrl = 'ldap://127.0.0.1:10389';
 var failDN = "uid=auser,ou=system";
 var schemaDN = "ou=schema";
-var username = "uid=admin,ou=system";
-var password = "password";
-var baseDN = "ou=system";
+
+var ldapUrl = "ldap://idcmigrationservice.cloudapp.net:389";
+var username = "admin";
+var password = "1password2";
+var baseDN = "ou=UnifySolutions";
+
+//var ldapUrl = 'ldap://127.0.0.1:10389';
+//var username = "uid=admin,ou=system";
+//var password = "password";
+//var baseDN = "ou=system";
 
 //LDAP Schema
 var ldapSchema = null;
