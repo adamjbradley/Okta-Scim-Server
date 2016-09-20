@@ -22,17 +22,18 @@ var self = module.exports = {
   LDAPConnectPromise: function(ldap, client, bindDN, password) {
     return new Promise(function (fulfill, reject) {
       console.log("LDAPConnectPromise Entering");
-      client.bindAsync('uid=admin,ou=system', 'password')
-      .then(function() {
-        console.log('LDAPConnectPromise bind Successful');
-      })
-      .catch (function(err) {
-        console.log('LDAPConnectPromise bind Unuccessful' + err);
-        reject(err);
-      })
-      .finally(function() {
-        console.log("LDAPConnectPromise Leaving");
-      })
+      client.bindAsync(bindDN, password)
+        .then(function(res) {
+          console.log('LDAPConnectPromise bind Successful');
+          //fulfill("success");
+        })
+        .catch (function(err) {
+          console.log('LDAPConnectPromise bind Unuccessful' + err);
+          //reject(err);
+        })
+        .finally(function() {
+          console.log("LDAPConnectPromise Leaving");
+        })
     });
   },
 

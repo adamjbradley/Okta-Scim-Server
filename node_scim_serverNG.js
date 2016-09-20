@@ -1,4 +1,4 @@
-/** Copyright © 2016, Okta, Inc.
+﻿/** Copyright © 2016, Okta, Inc.
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -42,12 +42,23 @@ var LDAPConnect = ldapHelper.LDAPConnect,
 
 //LDAP Configuration
 var client = null;
-var ldapUrl = 'ldap://127.0.0.1:10389';
 var failDN = "uid=auser,ou=system";
 var schemaDN = "ou=schema";
-var username = "uid=admin,ou=system";
+
+//Local Server
+//var ldapUrl = 'ldap://127.0.0.1:10389';
+//var username = "uid=admin,ou=system";
+//var password = "password";
+//var baseDN = "ou=system";
+
+//IdB
+var ldapUrl = 'ldap://idcmigrationservice.cloudapp.net:389';
+var username = "admin";
 var password = "password";
-var baseDN = "ou=system";
+var baseDN = "DC=IdentityBroker";
+var baseUserClass = "person";
+var baseGroupClass = "groups";
+var namingAttribute = "detnumber";
 
 //LDAP Schema
 var ldapSchema = null;
@@ -171,7 +182,7 @@ app.get("/scim/v2/Users", function (req, res) {
   var queryValue = "";
 
   var opts = {
-    filter: '(ObjectClass=inetOrgPerson)',
+    filter: '(objectClass=' + baseUserClass + ')',
     scope: 'sub',
     attributes: []
   };
@@ -214,10 +225,13 @@ app.get("/scim/v2/Users/:userId", function (req, res){
   var results = [];
 
   var opts = {
-    filter: '(|(uid=' + id + '))',
+    filter: '(' + namingAttribute + '=' + id + ')',
     scope: 'sub',
     attributes: []
   };
+
+  console.log(opts);
+  console.log(baseDN);
 
   LDAPSearchAsyncPromise(client, baseDN, opts)
     .then(function (result) {
@@ -263,7 +277,7 @@ app.post('/scim/v2/Users',  function (req, res) {
   var id = users['id'];
 
   var opts = {
-    filter: '(|(uid=' + id + '))',
+    filter: '(|(' + namingAttribute + '=' + id + '))',
     scope: 'sub',
     attributes: []
   };
@@ -284,9 +298,9 @@ app.post('/scim/v2/Users',  function (req, res) {
       }
     }).catch(function(message) {
       var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
-      SCIMToLDAPObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
+      SCIMToLDAPObject(schemaMap, users, "http://localhost", baseDN, objectClass)      
         .then(function (result) {
-          client.add('uid=' + id + ',' + baseDN, result, function(err) {
+          client.add(namingAttribute + '=' + id + ',' + baseDN, result, function(err) {
             assert.ifError(err);
           });
           res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -313,7 +327,7 @@ app.delete("/scim/v2/Users/:userId", function (req, res) {
   var req_url =  url_parts.pathname;
 
   var opts = {
-    filter: '(|(uid=' + id + '))',
+    filter: '(|(' + namingAttribute + '=' + id + '))',
     scope: 'sub',
     attributes: []
   };
@@ -325,7 +339,7 @@ app.delete("/scim/v2/Users/:userId", function (req, res) {
       return LDAPSearchPromise(result, 'Object not found');
     }).then(function(result) {
         
-      client.del('uid=' + id + ',' + baseDN, function(err) {
+      client.del(namingAttribute + '=' + id + ',' + baseDN, function(err) {
         assert.ifError(err);
       });
 
@@ -356,7 +370,7 @@ app.put("/scim/v2/Users/:userId", function (req, res) {
   var id = req.params.userId;
 
   var opts = {
-    filter: '(|(uid=' + id + '))',
+    filter: '(|(' + namingAttribute + '=' + id + '))',
     scope: 'sub',
     attributes: []
   };
@@ -371,7 +385,7 @@ app.put("/scim/v2/Users/:userId", function (req, res) {
         var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
         SCIMToLDAPModifyObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
           .then(function (result) {
-            client.modify('uid=' + id + ',' + baseDN, result, function(err) {
+            client.modify(namingAttribute + '=' + id + ',' + baseDN, result, function(err) {
               assert.ifError(err);
             });
             res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -496,8 +510,14 @@ var server = app.listen(8081, function () {
   });
   promise.promisifyAll(client);
 
-  if (LDAPConnectPromise(ldap, client, username, password))
-    console.log("Connected to LDAP Server");  
+
+  LDAPConnectPromise(ldap, client, username, password)
+    .then(function (res) {
+      console.log('Connected:' + res);
+    })
+    .catch(function(message) {
+      console.log('Error:' + message);
+    });
 
   OpenJSONDocument(schemaMapPath)
     .then(function (res) {
