@@ -45,11 +45,20 @@ var client = null;
 var failDN = "uid=auser,ou=system";
 var schemaDN = "ou=schema";
 
+<<<<<<< HEAD:node_scim_serverNG.js
 //Local Server
+=======
+var ldapUrl = "ldap://idcmigrationservice.cloudapp.net:389";
+var username = "admin";
+var password = "1password2";
+var baseDN = "ou=UnifySolutions";
+
+>>>>>>> origin/master:app.js
 //var ldapUrl = 'ldap://127.0.0.1:10389';
 //var username = "uid=admin,ou=system";
 //var password = "password";
 //var baseDN = "ou=system";
+<<<<<<< HEAD:node_scim_serverNG.js
 
 //IdB
 var ldapUrl = 'ldap://idcmigrationservice.cloudapp.net:389';
@@ -59,6 +68,8 @@ var baseDN = "DC=IdentityBroker";
 var baseUserClass = "person";
 var baseGroupClass = "groups";
 var namingAttribute = "detnumber";
+=======
+>>>>>>> origin/master:app.js
 
 //LDAP Schema
 var ldapSchema = null;
@@ -194,7 +205,7 @@ app.get("/scim/v2/Users", function (req, res) {
     }).then(function(result) {
 
       for (var i=0; i<result.length; i++){
-        LDAPToSCIMObject(schemaMap, result[i], "http://localhost", "o=system")
+        LDAPToSCIMObject(schemaMap, result[i], "http://localhost", baseDN)
           .then(function (result) {
             scimObjects.push(result);
           }).catch(function(message) {
@@ -245,7 +256,7 @@ app.get("/scim/v2/Users/:userId", function (req, res){
       }
     }).then(function(result) {
 
-      LDAPToSCIMObject(schemaMap, users, "http://localhost", "o=system")
+      LDAPToSCIMObject(schemaMap, users, "http://localhost", baseDN)
         .then(function (result) {
           res.writeHead(200, {'Content-Type': 'text/plain'});
           res.end(JSON.stringify(result));
@@ -314,7 +325,7 @@ app.post('/scim/v2/Users',  function (req, res) {
       
     }).finally(function() {
     });
-
+    
 }); 
 
 /**
@@ -383,7 +394,7 @@ app.put("/scim/v2/Users/:userId", function (req, res) {
     }).then(function(result) {
       if (result.length == 1) {
         var objectClass = [ "top" , "inetOrgPerson", "person", "organizationalPerson"];
-        SCIMToLDAPModifyObject(schemaMap, users, "http://localhost", "o=system", objectClass)      
+        SCIMToLDAPModifyObject(schemaMap, users, "http://localhost", baseDN, objectClass)      
           .then(function (result) {
             client.modify(namingAttribute + '=' + id + ',' + baseDN, result, function(err) {
               assert.ifError(err);
@@ -481,7 +492,7 @@ app.get("/scim/v2/Groups", function (req, res) {
     }).then(function(result) {
 
       for (var i=0; i<result.length; i++){
-        LDAPToSCIMGroupObject(schemaMap, result[i], "http://localhost", "o=system")
+        LDAPToSCIMGroupObject(schemaMap, result[i], "http://localhost", baseDN)
           .then(function (result) {
             scimObjects.push(result);
           }).catch(function(message) {
